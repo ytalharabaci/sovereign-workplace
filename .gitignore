@@ -1,0 +1,13 @@
+# Ortam değişkenleri ve şifre dökümleri
+.env
+kurulum-bilgileri.txt
+
+# Kalıcı konteyner verileri ve yedekler
+data/
+backups/
+*.sql
+*.tar.gz
+
+# Sistem dosyaları
+.DS_Store
+*.swp
