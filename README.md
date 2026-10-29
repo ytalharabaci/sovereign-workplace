@@ -1,6 +1,6 @@
 # 🏛️ Sovereign Workplace
 
-**Küçük ve Orta Ölçekli Kurumlar (1–25 Kullanıcı) İçin Veri Egemenliğine Dayalı, Tek Sunuculu Kurumsal İş Yeri Altyapısı.**
+**Küçük Ölçekli Kurumlar (1–25 Kullanıcı) İçin Veri Egemenliğine Dayalı, Tek Sunuculu Kurumsal İş Yeri Altyapısı.**
 
 Küçük ölçekli kurumların ve ekiplerin; kullanıcı başı aylık abonelik maliyetlerine (Microsoft 365, Google Workspace, Slack, Trello, 1Password) ve üçüncü parti bulut sağlayıcılarının veri bağımlılığına (vendor lock-in) mecbur kalmadan, **tek bir sanal sunucu (VPS)** üzerinde kendi bağımsız dijital çalışma ortamlarını kurmalarını sağlar.
 
