@@ -130,9 +130,9 @@ docker exec -u www-data nextcloud-app php occ config:app:set onlyoffice jwt_secr
 docker exec -u www-data nextcloud-app php occ config:app:set onlyoffice jwt_header --value="Authorization"
 
 # 9. Yedekleme Betiğinin Cron'a Eklenmesi
-if [[ -f "${REPO_DIR}/scripts/backup.sh" ]]; then
-    cp "${REPO_DIR}/scripts/backup.sh" /etc/cron.daily/sovereign-backup
-    sed -i "s|/opt/kurumsal-stack|${REPO_DIR}|g" /etc/cron.daily/sovereign-backup
+if [[ -f "${REPO_DIR}/backup.sh" ]]; then
+    cp "${REPO_DIR}/backup.sh" /etc/cron.daily/sovereign-backup
+    sed -i "s|^STACK_DIR=.*|STACK_DIR=\"${REPO_DIR}\"|g" /etc/cron.daily/sovereign-backup
     chmod +x /etc/cron.daily/sovereign-backup
 fi
 

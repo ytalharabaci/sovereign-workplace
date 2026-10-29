@@ -1,0 +1,171 @@
+services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      - DOMAIN=${DOMAIN}
+      - TZ=${TZ}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./site:/var/www/site:ro
+      - ./data/caddy/data:/data
+      - ./data/caddy/config:/config
+    networks:
+      - kurumsal-net
+    mem_limit: 256m
+
+  poste:
+    image: analogic/poste.io:latest
+    container_name: poste
+    restart: unless-stopped
+    hostname: mail.${DOMAIN}
+    ports:
+      - "25:25"
+      - "110:110"
+      - "143:143"
+      - "465:465"
+      - "587:587"
+      - "993:993"
+      - "995:995"
+    environment:
+      - HTTPS=OFF
+      - TZ=${TZ}
+      - DISABLE_CLAMAV=FALSE
+      - DISABLE_RSPAMD=FALSE
+      - DISABLE_ROUNDCUBE=FALSE
+    volumes:
+      - ./data/poste:/data
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - kurumsal-net
+    mem_limit: 2048m
+
+  db:
+    image: postgres:16-alpine
+    container_name: nextcloud-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - TZ=${TZ}
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - kurumsal-net
+    mem_limit: 1024m
+
+  redis:
+    image: redis:7-alpine
+    container_name: nextcloud-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    networks:
+      - kurumsal-net
+    mem_limit: 256m
+
+  nextcloud:
+    image: nextcloud:stable-apache
+    container_name: nextcloud-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_HOST_PASSWORD=${REDIS_PASSWORD}
+      - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=cloud.${DOMAIN}
+      - OVERWRITEPROTOCOL=https
+      - OVERWRITECLIURL=https://cloud.${DOMAIN}
+      - PHP_MEMORY_LIMIT=1024M
+      - PHP_UPLOAD_LIMIT=10G
+      - TZ=${TZ}
+    volumes:
+      - ./data/nextcloud:/var/www/html
+    networks:
+      - kurumsal-net
+    mem_limit: 2048m
+
+  nextcloud-cron:
+    image: nextcloud:stable-apache
+    container_name: nextcloud-cron
+    restart: unless-stopped
+    depends_on:
+      - nextcloud
+    entrypoint: /cron.sh
+    volumes:
+      - ./data/nextcloud:/var/www/html
+    networks:
+      - kurumsal-net
+    mem_limit: 512m
+
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: onlyoffice
+    restart: unless-stopped
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET}
+      - JWT_HEADER=Authorization
+      - TZ=${TZ}
+    volumes:
+      - ./data/onlyoffice/data:/var/www/onlyoffice/Data
+      - ./data/onlyoffice/log:/var/log/onlyoffice
+      - ./data/onlyoffice/fonts:/usr/share/fonts/truetype/custom
+    networks:
+      - kurumsal-net
+    mem_limit: 3072m
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    environment:
+      - DOMAIN=https://vault.${DOMAIN}
+      - SIGNUPS_ALLOWED=false
+      - INVITATIONS_ALLOWED=true
+      - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN}
+      - SMTP_HOST=poste
+      - SMTP_FROM=vault@${DOMAIN}
+      - SMTP_PORT=25
+      - SMTP_SECURITY=off
+      - TZ=${TZ}
+    volumes:
+      - ./data/vaultwarden:/data
+    networks:
+      - kurumsal-net
+    mem_limit: 256m
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ}
+    volumes:
+      - ./data/uptime-kuma:/app/data
+    networks:
+      - kurumsal-net
+    mem_limit: 256m
+
+networks:
+  kurumsal-net:
+    driver: bridge

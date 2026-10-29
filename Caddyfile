@@ -1,0 +1,61 @@
+www.{$DOMAIN} {
+    redir https://{$DOMAIN}{uri} permanent
+}
+
+{$DOMAIN} {
+    root * /var/www/site
+    file_server
+    encode zstd gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Cache-Control "public, max-age=86400, must-revalidate"
+    }
+
+    handle_errors {
+        rewrite * /404.html
+        file_server
+    }
+}
+
+cloud.{$DOMAIN} {
+    request_body {
+        max_size 10GB
+    }
+
+    redir /.well-known/carddav /remote.php/dav 301
+    redir /.well-known/caldav /remote.php/dav 301
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    }
+
+    reverse_proxy nextcloud:80
+}
+
+office.{$DOMAIN} {
+    reverse_proxy onlyoffice:80 {
+        header_up X-Forwarded-Proto https
+        header_up X-Forwarded-Host {host}
+    }
+}
+
+mail.{$DOMAIN}, autoconfig.{$DOMAIN}, autodiscover.{$DOMAIN} {
+    reverse_proxy poste:80 {
+        header_up X-Forwarded-Proto https
+        header_up X-Real-IP {remote_host}
+    }
+}
+
+vault.{$DOMAIN} {
+    reverse_proxy vaultwarden:80 {
+        header_up X-Real-IP {remote_host}
+    }
+}
+
+status.{$DOMAIN} {
+    reverse_proxy uptime-kuma:3001
+}
